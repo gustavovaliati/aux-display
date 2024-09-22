@@ -12,7 +12,7 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #f4f4f4;
+            background-color: #131313;
             font-family: Arial, sans-serif;
         }
 
@@ -24,8 +24,8 @@
         #progressBar {
             left: 1%;
             width: 98%;
-            height: 50vh;
-            background-color: #ddd;
+            height: 70vh;
+            background-color: #131313;
             border-radius: 20px;
             margin-top: 20px;
             position: relative;
@@ -33,9 +33,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 6em;
+            font-size: 65vmin;
             /* Countdown number twice as big */
-            color: white;
+            color: rgb(0, 0, 0);
             font-weight: bold;
         }
 
@@ -60,21 +60,6 @@
             width: 100px;
         }
 
-        button {
-            padding: 10px 20px;
-            font-size: 18px;
-            cursor: pointer;
-            background-color: #4caf50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            margin-top: 10px;
-        }
-
-        button:disabled {
-            background-color: #bbb;
-        }
-
         #timeDisplay {
             position: absolute;
             z-index: 1;
@@ -91,9 +76,9 @@
         }
 
         #currentTime {
-            font-size: 6em;
+            font-size: 20vh;
             /* Same font size as countdown */
-            color: black;
+            color: rgb(240, 240, 240);
             margin-top: 20px;
         }
     </style>
@@ -136,6 +121,15 @@
                         if (!started) {
                             startCountdown(event.seconds);
                             started = true;
+                            loop()
+
+                            const progressBar = document.getElementById('progressBar');
+                            const filler = document.getElementById('filler');
+                            const timeDisplay = document.getElementById('timeDisplay');
+                            progressBar.style.backgroundColor = '#fcfcfc';
+                            progressBar.classList.remove('hidden');
+                            filler.classList.remove('hidden');
+                            timeDisplay.classList.remove('hidden');
                         }
                         break;
                     case "restart":
@@ -150,6 +144,19 @@
                     case "continue":
                         paused = false
                         break;
+                    case "stop":
+                        started = false
+                        const progressBar = document.getElementById('progressBar');
+                        const filler = document.getElementById('filler');
+                        const timeDisplay = document.getElementById('timeDisplay');
+
+                        progressBar.style.backgroundColor = '#131313';
+                        // filler.style.backgroundColor = "#4caf50";
+                        progressBar.classList.add('hidden');
+                        filler.classList.add('hidden');
+                        timeDisplay.classList.add('hidden');
+
+                        break;
                     default:
                         throw new Error(`Unsupported event type: ${event.type}.`);
                 }
@@ -159,7 +166,6 @@
 
 
         function startCountdown(new_duration) {
-            console.log("new_duration", new_duration)
             const progressBar = document.getElementById('progressBar');
             const filler = document.getElementById('filler');
             const timeDisplay = document.getElementById('timeDisplay');
@@ -168,7 +174,6 @@
             filler.style.backgroundColor = "#4caf50";
             timeRemaining = new_duration;
             duration = new_duration;
-            console.log(new_duration, duration, timeRemaining)
 
             blinkCount = 0;
             isBlinking = false;
@@ -176,8 +181,7 @@
             progressBar.classList.remove('hidden');
 
         }
-
-        setInterval(() => {
+        function loop() {
             if (paused || !started) {
                 return
             }
@@ -213,7 +217,10 @@
             const seconds = absTimeRemaining % 60;
             const formattedTime = `${timeRemaining < 0 ? '-' : ''}${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
             timeDisplay.textContent = formattedTime;
+        }
 
+        setInterval(() => {
+            loop()
         }, 1000);
 
         function displayCurrentTime() {
