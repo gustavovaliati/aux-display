@@ -15,13 +15,14 @@
         <button id="connectBtn" >Connect</button>
         <br>
         <label for="minutesInput">Minutes:</label>
-        <input id="minutesInput" type="number" step="1" value="1" min="0">
+        <input id="minutesInput" type="number" step="1" value="0" min="0">
         <label for="secondsInput">Seconds:</label>
-        <input id="secondsInput" type="number" step="1" value="30" min="0">
+        <input id="secondsInput" type="number" step="1" value="10" min="0">
         <br>
         <button id="startBtn" style="display: none;" >Start</button>
         <button id="restartBtn" style="display: none;" >Restart</button>
         <button id="pauseBtn" style="display: none;" >Pause</button>
+        <button id="continueBtn" style="display: none;" >Continue</button>
         <button id="stopBtn" style="display: none;" >Stop</button>
     </div>
 
@@ -38,6 +39,7 @@
                 document.getElementById('startBtn').style.display = 'block';
                 document.getElementById('restartBtn').style.display = 'block';
                 document.getElementById('pauseBtn').style.display = 'block';
+                document.getElementById('continueBtn').style.display = 'block';
                 document.getElementById('stopBtn').style.display = 'block';
             };
 
@@ -50,6 +52,7 @@
                 document.getElementById('startBtn').style.display = 'none';
                 document.getElementById('restartBtn').style.display = 'none';
                 document.getElementById('pauseBtn').style.display = 'none';
+                document.getElementById('continueBtn').style.display = 'none';
                 document.getElementById('stopBtn').style.display = 'none';
             };
         };
@@ -63,11 +66,19 @@
             socket.send(JSON.stringify(event));
         });
         document.getElementById('restartBtn').addEventListener('click', function() {
-            const event = {type: "restart"};
+            const minutes = parseInt(document.getElementById('minutesInput').value, 10);
+            const seconds = parseInt(document.getElementById('secondsInput').value, 10);
+            const totalSeconds = (minutes * 60) + seconds;
+            const event = {type: "restart", seconds: totalSeconds};
+
             socket.send(JSON.stringify(event));
         });
         document.getElementById('pauseBtn').addEventListener('click', function() {
             const event = {type: "pause"};
+            socket.send(JSON.stringify(event));
+        });
+        document.getElementById('continueBtn').addEventListener('click', function() {
+            const event = {type: "continue"};
             socket.send(JSON.stringify(event));
         });
         document.getElementById('stopBtn').addEventListener('click', function() {

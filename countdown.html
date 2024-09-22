@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,17 +22,19 @@
         }
 
         #progressBar {
-            width: 99%;
+            left: 1%;
+            width: 98%;
             height: 50vh;
             background-color: #ddd;
-            border-radius: 5px;
+            border-radius: 20px;
             margin-top: 20px;
             position: relative;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 6em; /* Countdown number twice as big */
+            font-size: 6em;
+            /* Countdown number twice as big */
             color: white;
             font-weight: bold;
         }
@@ -88,113 +91,130 @@
         }
 
         #currentTime {
-            font-size: 6em; /* Same font size as countdown */
+            font-size: 6em;
+            /* Same font size as countdown */
             color: black;
             margin-top: 20px;
         }
     </style>
 </head>
+
 <body>
 
     <div class="container">
-        <div id="setup">
-            <label for="minutesInput">Minutes:</label>
-            <input id="minutesInput" type="number" step="1" value="1" min="0">
-            <label for="secondsInput">Seconds:</label>
-            <input id="secondsInput" type="number" step="1" value="30" min="0">
-            <br>
-            <button id="startBtn">Start Countdown</button>
-        </div>
-
         <div id="progressBar" class="hidden">
             <div id="filler"></div>
             <div id="timeDisplay"></div>
         </div>
 
-        <div id="currentTime" class="hidden"></div>
+        <div id="currentTime"></div>
     </div>
-    
+
     <script>
-        const socket = new WebSocket('ws://localhost:8080');
-    
-        socket.onopen = () => {
-            console.log('WebSocket connection established.');
-        };
+        let socket;
+        let started = false;
+        let timeRemaining = 0;
+        let blinkCount = 0;
+        let isBlinking = false;
+        let duration = 0;
+        let paused = false;
 
-        socket.addEventListener("message", ({ data }) => {
-            const event = JSON.parse(data);
-            // do something with event
-            console.log(`Received: ${event.type}`);
+        document.addEventListener("DOMContentLoaded", function () {
+            displayCurrentTime();
+            socket = new WebSocket('ws://localhost:8080');
+            // socket = new WebSocket('ws://192.168.3.16:8080');
+            socket.onopen = () => {
+                console.log('WebSocket connection established.');
+            };
+            socket.addEventListener("message", ({ data }) => {
+                const event = JSON.parse(data);
+                // do something with event
+                console.log(`Received: ${event.type}`);
 
-            switch (event.type) {
-                case "start":
-                    startCountdown(event.seconds);
-                    displayCurrentTime();
-                    break;
-                default:
-                    throw new Error(`Unsupported event type: ${event.type}.`);
-            }
+                switch (event.type) {
+                    case "start":
+                        if (!started) {
+                            startCountdown(event.seconds);
+                            started = true;
+                        }
+                        break;
+                    case "restart":
+                        if (started) {
+                            paused = false
+                            startCountdown(event.seconds);
+                        }
+                        break;
+                    case "pause":
+                        paused = true
+                        break;
+                    case "continue":
+                        paused = false
+                        break;
+                    default:
+                        throw new Error(`Unsupported event type: ${event.type}.`);
+                }
+            });
         });
 
-        document.getElementById('startBtn').addEventListener('click', function() {
-            const minutes = parseInt(document.getElementById('minutesInput').value, 10);
-            const seconds = parseInt(document.getElementById('secondsInput').value, 10);
-            const totalSeconds = (minutes * 60) + seconds;
 
-            if (totalSeconds > 0) {
-                startCountdown(totalSeconds);
-                
-            }
-        });
 
-        function startCountdown(duration) {
+        function startCountdown(new_duration) {
+            console.log("new_duration", new_duration)
             const progressBar = document.getElementById('progressBar');
             const filler = document.getElementById('filler');
-            const setupDiv = document.getElementById('setup');
             const timeDisplay = document.getElementById('timeDisplay');
             const currentTimeDisplay = document.getElementById('currentTime');
-            let timeRemaining = duration;
-            let blinkCount = 0;
-            let isBlinking = false;
 
-            setupDiv.classList.add('hidden');
+            filler.style.backgroundColor = "#4caf50";
+            timeRemaining = new_duration;
+            duration = new_duration;
+            console.log(new_duration, duration, timeRemaining)
+
+            blinkCount = 0;
+            isBlinking = false;
+
             progressBar.classList.remove('hidden');
-            currentTimeDisplay.classList.remove('hidden');
 
-            const interval = setInterval(() => {
-                timeRemaining--;
-
-                // Update the filler width
-                const progress = ((duration - timeRemaining) / duration) * 100;
-                filler.style.width = progress + '%';
-
-                // Handle color changes and blinking
-                if (progress >= 99) {
-                    filler.style.backgroundColor = 'red';
-                } else if (progress >= 90) {
-                    filler.style.backgroundColor = 'orange';
-                } else if (progress >= 80 && !isBlinking) {
-                    isBlinking = true;
-                    const blinkInterval = setInterval(() => {
-                        if (blinkCount < 5) {
-                            filler.classList.toggle('blink');
-                            blinkCount++;
-                        } else {
-                            clearInterval(blinkInterval);
-                            filler.classList.remove('blink');
-                        }
-                    }, 500);
-                }
-
-                // Format and update the time remaining inside the bar
-                const absTimeRemaining = Math.abs(timeRemaining);
-                const minutes = Math.floor(absTimeRemaining / 60);
-                const seconds = absTimeRemaining % 60;
-                const formattedTime = `${timeRemaining < 0 ? '-' : ''}${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                timeDisplay.textContent = formattedTime;
-
-            }, 1000);
         }
+
+        setInterval(() => {
+            if (paused || !started) {
+                return
+            }
+            timeRemaining--;
+
+            // Update the filler width
+            const progress = ((duration - timeRemaining) / duration) * 100;
+            filler.style.width = progress + '%';
+            // filler.classList.toggle('hidden')
+
+            // Handle color changes and blinking
+            if (progress >= 99) {
+                filler.style.backgroundColor = 'red';
+            } else if (progress >= 90) {
+                filler.style.backgroundColor = 'orange';
+            } else if (progress >= 80 && !isBlinking) {
+                filler.style.backgroundColor = 'yellow';
+                isBlinking = true;
+                const blinkInterval = setInterval(() => {
+                    if (blinkCount < 5) {
+                        filler.classList.toggle('blink');
+                        blinkCount++;
+                    } else {
+                        clearInterval(blinkInterval);
+                        filler.classList.remove('blink');
+                    }
+                }, 500);
+            }
+
+            // Format and update the time remaining inside the bar
+            const absTimeRemaining = Math.abs(timeRemaining);
+            const minutes = Math.floor(absTimeRemaining / 60);
+            const seconds = absTimeRemaining % 60;
+            const formattedTime = `${timeRemaining < 0 ? '-' : ''}${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            timeDisplay.textContent = formattedTime;
+
+        }, 1000);
 
         function displayCurrentTime() {
             setInterval(() => {
@@ -206,4 +226,5 @@
     </script>
 
 </body>
+
 </html>
