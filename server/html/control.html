@@ -27,6 +27,14 @@
             width: 100%;
         }
 
+        #currentTime {
+            background-color: #000000;
+            text-align: center;
+            color: #ffffff;
+            padding: 10px;
+            font-size: 5vmax;
+        }
+
         h1 {
             text-align: center;
             color: #333;
@@ -90,7 +98,6 @@
             font-size: 18px;
         }
 
-
         .input-row label {
             display: inline;
             margin: 0 10px;
@@ -98,6 +105,17 @@
 
         .duration-inputs {
             display: none;
+        }
+
+        .button-container {
+            display: none;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .button-container button {
+            width: 18%;
+            /* Adjust width for buttons to fit in a row */
         }
 
         @media (max-width: 500px) {
@@ -116,21 +134,16 @@
     <div id="setup">
         <h1>Control</h1>
 
-        <!-- Server Address and Port Inputs -->
-        <div class="input-row">
-            <div>
-                <input id="serverAddress" type="text" value="localhost" style="width: 100px;">
-            </div>
-            <div>
-                <input id="serverPort" type="number" value="8081" style="width: 80px;">
-            </div>
-            <button id="connectBtn" style="width: 100px;">
-                <i class="fas fa-plug"></i> Connect
-            </button>
+        <!-- Buttons for setting minutes -->
+        <div class="button-container">
+            <button onclick="setMinutes(1)">1</button>
+            <button onclick="setMinutes(2)">2</button>
+            <button onclick="setMinutes(3)">3</button>
+            <button onclick="setMinutes(5)">5</button>
+            <button onclick="setMinutes(10)">10</button>
         </div>
 
-
-        <!-- Duration Inputs (Hidden by Default) -->
+        <!-- Duration Inputs (Initially Hidden) -->
         <div class="duration-inputs">
             <div class="input-row">
                 <div>
@@ -160,10 +173,33 @@
         <button id="deleteBtn" style="display: none;">
             <i class="fas fa-trash"></i> Delete
         </button>
+
+        <div>
+            <label for="currentTime">Timer:</label>
+            <div id="currentTime">Waiting for display</div>
+        </div>
+
     </div>
 
     <script>
         let socket;
+
+        // Function to show/hide duration inputs and buttons
+        function toggleDurationComponents(shouldShow) {
+            const displayStyle = shouldShow ? 'block' : 'none';
+            document.querySelector('.duration-inputs').style.display = displayStyle;
+            document.querySelector('.button-container').style.display = displayStyle;
+            document.getElementById('startBtn').style.display = displayStyle;
+            document.getElementById('restartBtn').style.display = displayStyle;
+            document.getElementById('pauseBtn').style.display = displayStyle;
+            document.getElementById('continueBtn').style.display = displayStyle;
+            document.getElementById('deleteBtn').style.display = displayStyle;
+        }
+
+        // Function to set minutes based on button click
+        function setMinutes(value) {
+            document.getElementById('minutesInput').value = value;
+        }
 
         // Ensure minutes and seconds default to 0 if left empty
         function ensureDefaultValues() {
@@ -183,19 +219,13 @@
             });
         }
 
-        document.getElementById('connectBtn').onclick = function () {
-            let serverAddress = document.getElementById('serverAddress').value;
-            let serverPort = document.getElementById('serverPort').value;
-            socket = new WebSocket(`ws://${serverAddress}:${serverPort}/ws`);
+        document.addEventListener("DOMContentLoaded", function () {
+            socket = new WebSocket(`ws://localhost:8081/ws`);
 
             socket.onopen = function () {
                 console.log('Connected to WebSocket server');
-                document.querySelector('.duration-inputs').style.display = 'block';
-                document.getElementById('startBtn').style.display = 'block';
-                document.getElementById('restartBtn').style.display = 'block';
-                document.getElementById('pauseBtn').style.display = 'block';
-                document.getElementById('continueBtn').style.display = 'block';
-                document.getElementById('deleteBtn').style.display = 'block';
+                toggleDurationComponents(true); // Show inputs and buttons
+                socket.send(JSON.stringify({ type: "ready" }));
             };
 
             socket.onerror = function (error) {
@@ -204,46 +234,68 @@
 
             socket.onclose = function () {
                 console.log('WebSocket connection closed');
-                document.querySelector('.duration-inputs').style.display = 'none';
-                document.getElementById('startBtn').style.display = 'none';
-                document.getElementById('restartBtn').style.display = 'none';
-                document.getElementById('pauseBtn').style.display = 'none';
-                document.getElementById('continueBtn').style.display = 'none';
-                document.getElementById('deleteBtn').style.display = 'none';
+                toggleDurationComponents(false); // Hide inputs and buttons
             };
+
+            socket.addEventListener("message", ({ data }) => {
+                const event = JSON.parse(data);
+                console.log(`Received: ${data}`);
+
+                switch (event.type) {
+                    case "report":
+                        if (event.received) {
+                            document.getElementById('currentTime').textContent = event.received
+                        } else {
+
+                            const absTimeRemaining = Math.abs(event.timeRemaining);
+                            const minutes = Math.floor(absTimeRemaining / 60);
+                            const seconds = absTimeRemaining % 60;
+                            const sign = event.timeRemaining < 0 ? '-' : ''
+                            document.getElementById('currentTime').textContent = `${sign}${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                            if (event.timeRemaining <= 0) {
+                                document.getElementById('currentTime').style.backgroundColor = 'red';
+                            } else {
+                                document.getElementById('currentTime').style.backgroundColor = 'black';
+                            }
+                        }
+                        break;
+                    case "countdown-loaded":
+                        document.getElementById('currentTime').textContent = `loaded`;
+                        document.getElementById('currentTime').style.backgroundColor = 'black';
+                        break;
+                    default:
+                        filler.style.backgroundColor = 'black';
+                        document.getElementById('currentTime').textContent = "default";
+                }
+            });
+        });
+
+        const sendEvent = (type) => {
+            const minutes = parseInt(document.getElementById('minutesInput').value, 10);
+            const seconds = parseInt(document.getElementById('secondsInput').value, 10);
+            const totalSeconds = (minutes * 60) + seconds;
+            const event = { type: type, seconds: totalSeconds };
+            socket.send(JSON.stringify(event));
         };
 
         document.getElementById('startBtn').addEventListener('click', function () {
-            const minutes = parseInt(document.getElementById('minutesInput').value, 10);
-            const seconds = parseInt(document.getElementById('secondsInput').value, 10);
-            const totalSeconds = (minutes * 60) + seconds;
-            const event = { type: "start", seconds: totalSeconds };
-
-            socket.send(JSON.stringify(event));
+            sendEvent("start");
         });
 
         document.getElementById('restartBtn').addEventListener('click', function () {
-            const minutes = parseInt(document.getElementById('minutesInput').value, 10);
-            const seconds = parseInt(document.getElementById('secondsInput').value, 10);
-            const totalSeconds = (minutes * 60) + seconds;
-            const event = { type: "restart", seconds: totalSeconds };
-
-            socket.send(JSON.stringify(event));
+            sendEvent("restart");
         });
 
         document.getElementById('pauseBtn').addEventListener('click', function () {
-            const event = { type: "pause" };
-            socket.send(JSON.stringify(event));
+            socket.send(JSON.stringify({ type: "pause" }));
         });
 
         document.getElementById('continueBtn').addEventListener('click', function () {
-            const event = { type: "continue" };
-            socket.send(JSON.stringify(event));
+            socket.send(JSON.stringify({ type: "continue" }));
         });
 
         document.getElementById('deleteBtn').addEventListener('click', function () {
-            const event = { type: "delete" };
-            socket.send(JSON.stringify(event));
+            socket.send(JSON.stringify({ type: "delete" }));
         });
 
         // Initialize default value check for minutes and seconds

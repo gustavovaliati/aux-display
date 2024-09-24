@@ -109,14 +109,17 @@
             socket = new WebSocket('ws://localhost:8081/ws');
             socket.onopen = () => {
                 console.log('WebSocket connection established.');
+                socket.send(JSON.stringify({ type: "countdown-loaded" }));
             };
             socket.addEventListener("message", ({ data }) => {
                 const event = JSON.parse(data);
                 // do something with event
                 console.log(`Received: ${event.type}`);
+                socket.send(JSON.stringify({ type: "report", received: event.type }));
 
                 switch (event.type) {
                     case "start":
+                        paused = false
                         if (!started) {
                             startCountdown(event.seconds);
                             started = true;
@@ -156,10 +159,14 @@
                         timeDisplay.classList.add('hidden');
 
                         break;
+                    case "ready":
+                        break;
                     default:
                         throw new Error(`Unsupported event type: ${event.type}.`);
                 }
             });
+
+
         });
 
 
@@ -180,6 +187,7 @@
             progressBar.classList.remove('hidden');
 
         }
+
         function loop() {
             if (paused || !started) {
                 return
@@ -214,11 +222,11 @@
             const absTimeRemaining = Math.abs(timeRemaining);
             const minutes = Math.floor(absTimeRemaining / 60);
             const seconds = absTimeRemaining % 60;
-            const formattedTime = `${timeRemaining < 0 ? '-' : ''}${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            const sign = timeRemaining < 0 ? '-' : ''
+            const formattedTime = `${sign}${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
             timeDisplay.textContent = formattedTime;
 
-            const event = { type: "report", minutes: minutes, seconds: seconds };
-            socket.send(JSON.stringify(event));
+            socket.send(JSON.stringify({ type: "report", timeRemaining: timeRemaining }));
         }
 
         setInterval(() => {
@@ -228,8 +236,9 @@
         function displayCurrentTime() {
             setInterval(() => {
                 const now = new Date();
-                const currentTime = now.toLocaleTimeString();
-                document.getElementById('currentTime').textContent = currentTime;
+                const currentDate = now.toLocaleDateString("pt-BR",)
+                const currentTime = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+                document.getElementById('currentTime').textContent = `${currentDate}, ${currentTime}`;
             }, 1000);
         }
     </script>
