@@ -56,7 +56,7 @@
             box-sizing: border-box;
         }
 
-        button {
+        .button-control {
             width: 100%;
             padding: 10px;
             background-color: #4CAF50;
@@ -90,12 +90,14 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
+            background-color: #b3b3b3;
         }
 
         .input-row input {
             width: 48%;
             text-align: center;
             font-size: 18px;
+            margin: 5px;
         }
 
         .input-row label {
@@ -108,14 +110,23 @@
         }
 
         .button-container {
-            display: none;
-            justify-content: space-between;
-            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .button-container button {
-            width: 18%;
-            /* Adjust width for buttons to fit in a row */
+            width: 50px;
+            height: 50px;
+            background-color: #1c1d1c;
+            color: white;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            margin: 5px;
         }
 
         @media (max-width: 500px) {
@@ -135,12 +146,26 @@
         <h1>Control</h1>
 
         <!-- Buttons for setting minutes -->
+        <div>Set minutes:</div>
         <div class="button-container">
+            <button onclick="setMinutes(0)">0</button>
             <button onclick="setMinutes(1)">1</button>
             <button onclick="setMinutes(2)">2</button>
             <button onclick="setMinutes(3)">3</button>
             <button onclick="setMinutes(5)">5</button>
             <button onclick="setMinutes(10)">10</button>
+            <button onclick="setMinutes(20)">20</button>
+            <button onclick="setMinutes(30)">30</button>
+            <button onclick="setMinutes(40)">40</button>
+            <button onclick="setMinutes(50)">50</button>
+
+        </div>
+        <div>Set seconds:</div>
+        <div class="button-container">
+            <button onclick="setSeconds(0)">0</button>
+            <button onclick="setSeconds(15)">15</button>
+            <button onclick="setSeconds(30)">30</button>
+            <button onclick="setSeconds(45)">45</button>
         </div>
 
         <!-- Duration Inputs (Initially Hidden) -->
@@ -158,19 +183,19 @@
         </div>
 
         <!-- Action Buttons (Initially Hidden) -->
-        <button id="startBtn" style="display: none;">
+        <button id="startBtn" class="button-control" style="display: none;">
             <i class="fas fa-play"></i> Start
         </button>
-        <button id="restartBtn" style="display: none;">
+        <button id="restartBtn" class="button-control" style="display: none;">
             <i class="fas fa-redo"></i> Restart
         </button>
-        <button id="pauseBtn" style="display: none;">
+        <button id="pauseBtn" class="button-control" style="display: none;">
             <i class="fas fa-pause"></i> Pause
         </button>
-        <button id="continueBtn" style="display: none;">
+        <button id="continueBtn" class="button-control" style="display: none;">
             <i class="fas fa-play-circle"></i> Continue
         </button>
-        <button id="deleteBtn" style="display: none;">
+        <button id="deleteBtn" class="button-control" style="display: none;">
             <i class="fas fa-trash"></i> Delete
         </button>
 
@@ -201,6 +226,11 @@
             document.getElementById('minutesInput').value = value;
         }
 
+        // Function to set minutes based on button click
+        function setSeconds(value) {
+            document.getElementById('secondsInput').value = value;
+        }
+
         // Ensure minutes and seconds default to 0 if left empty
         function ensureDefaultValues() {
             const minutesInput = document.getElementById('minutesInput');
@@ -220,7 +250,15 @@
         }
 
         document.addEventListener("DOMContentLoaded", function () {
-            socket = new WebSocket(`ws://localhost:8081/ws`);
+            const origin_protocol = window.location.protocol
+            console.log("Origin protocol", origin_protocol)
+            if (["http:", "https:"].includes(origin_protocol)) {
+                const host = window.location.host;
+                console.log("Origin host", host)
+                socket = new WebSocket(`ws://${host}/ws`);
+            } else {
+                socket = new WebSocket(`ws://localhost:8081/ws`);
+            }
 
             socket.onopen = function () {
                 console.log('Connected to WebSocket server');
