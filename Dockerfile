@@ -5,13 +5,12 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Copy the server.py file into the container
-COPY server .
+COPY server/requirements.txt .
 
 # Install the websockets library
 RUN pip install -r requirements.txt
 
-# Expose the port the app runs on
-EXPOSE 8080
+COPY server .
 
 # Command to run the server
 CMD ["python", "app.py"]

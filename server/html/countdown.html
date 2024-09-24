@@ -106,8 +106,7 @@
 
         document.addEventListener("DOMContentLoaded", function () {
             displayCurrentTime();
-            socket = new WebSocket('ws://localhost:8080');
-            // socket = new WebSocket('ws://192.168.3.16:8080');
+            socket = new WebSocket('ws://localhost:8081/ws');
             socket.onopen = () => {
                 console.log('WebSocket connection established.');
             };
@@ -144,7 +143,7 @@
                     case "continue":
                         paused = false
                         break;
-                    case "stop":
+                    case "delete":
                         started = false
                         const progressBar = document.getElementById('progressBar');
                         const filler = document.getElementById('filler');
@@ -217,6 +216,9 @@
             const seconds = absTimeRemaining % 60;
             const formattedTime = `${timeRemaining < 0 ? '-' : ''}${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
             timeDisplay.textContent = formattedTime;
+
+            const event = { type: "report", minutes: minutes, seconds: seconds };
+            socket.send(JSON.stringify(event));
         }
 
         setInterval(() => {

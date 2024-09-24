@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duration Input</title>
+    <style>
+        @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css');
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #252525;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #setup {
+            background-color: #fcfcfc;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin: 5px 0 5px;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: calc(100% - 12px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px 0;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        button i {
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Styling for the duration and server inputs */
+        .input-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .input-row input {
+            width: 48%;
+            text-align: center;
+            font-size: 18px;
+        }
+
+
+        .input-row label {
+            display: inline;
+            margin: 0 10px;
+        }
+
+        .duration-inputs {
+            display: none;
+        }
+
+        @media (max-width: 500px) {
+            body {
+                padding: 20px;
+            }
+
+            #setup {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="setup">
+        <h1>Control</h1>
+
+        <!-- Server Address and Port Inputs -->
+        <div class="input-row">
+            <div>
+                <input id="serverAddress" type="text" value="localhost" style="width: 100px;">
+            </div>
+            <div>
+                <input id="serverPort" type="number" value="8081" style="width: 80px;">
+            </div>
+            <button id="connectBtn" style="width: 100px;">
+                <i class="fas fa-plug"></i> Connect
+            </button>
+        </div>
+
+
+        <!-- Duration Inputs (Hidden by Default) -->
+        <div class="duration-inputs">
+            <div class="input-row">
+                <div>
+                    <label for="minutesInput">Minutes</label>
+                    <input id="minutesInput" type="number" step="1" value="1" min="0" max="999">
+                </div>
+                <div>
+                    <label for="secondsInput">Seconds</label>
+                    <input id="secondsInput" type="number" step="1" value="0" min="0" max="9999">
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons (Initially Hidden) -->
+        <button id="startBtn" style="display: none;">
+            <i class="fas fa-play"></i> Start
+        </button>
+        <button id="restartBtn" style="display: none;">
+            <i class="fas fa-redo"></i> Restart
+        </button>
+        <button id="pauseBtn" style="display: none;">
+            <i class="fas fa-pause"></i> Pause
+        </button>
+        <button id="continueBtn" style="display: none;">
+            <i class="fas fa-play-circle"></i> Continue
+        </button>
+        <button id="deleteBtn" style="display: none;">
+            <i class="fas fa-trash"></i> Delete
+        </button>
+    </div>
+
+    <script>
+        let socket;
+
+        // Ensure minutes and seconds default to 0 if left empty
+        function ensureDefaultValues() {
+            const minutesInput = document.getElementById('minutesInput');
+            const secondsInput = document.getElementById('secondsInput');
+
+            minutesInput.addEventListener('blur', function () {
+                if (minutesInput.value === '') {
+                    minutesInput.value = '0';
+                }
+            });
+
+            secondsInput.addEventListener('blur', function () {
+                if (secondsInput.value === '') {
+                    secondsInput.value = '0';
+                }
+            });
+        }
+
+        document.getElementById('connectBtn').onclick = function () {
+            let serverAddress = document.getElementById('serverAddress').value;
+            let serverPort = document.getElementById('serverPort').value;
+            socket = new WebSocket(`ws://${serverAddress}:${serverPort}/ws`);
+
+            socket.onopen = function () {
+                console.log('Connected to WebSocket server');
+                document.querySelector('.duration-inputs').style.display = 'block';
+                document.getElementById('startBtn').style.display = 'block';
+                document.getElementById('restartBtn').style.display = 'block';
+                document.getElementById('pauseBtn').style.display = 'block';
+                document.getElementById('continueBtn').style.display = 'block';
+                document.getElementById('deleteBtn').style.display = 'block';
+            };
+
+            socket.onerror = function (error) {
+                console.error('WebSocket Error:', error);
+            };
+
+            socket.onclose = function () {
+                console.log('WebSocket connection closed');
+                document.querySelector('.duration-inputs').style.display = 'none';
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('restartBtn').style.display = 'none';
+                document.getElementById('pauseBtn').style.display = 'none';
+                document.getElementById('continueBtn').style.display = 'none';
+                document.getElementById('deleteBtn').style.display = 'none';
+            };
+        };
+
+        document.getElementById('startBtn').addEventListener('click', function () {
+            const minutes = parseInt(document.getElementById('minutesInput').value, 10);
+            const seconds = parseInt(document.getElementById('secondsInput').value, 10);
+            const totalSeconds = (minutes * 60) + seconds;
+            const event = { type: "start", seconds: totalSeconds };
+
+            socket.send(JSON.stringify(event));
+        });
+
+        document.getElementById('restartBtn').addEventListener('click', function () {
+            const minutes = parseInt(document.getElementById('minutesInput').value, 10);
+            const seconds = parseInt(document.getElementById('secondsInput').value, 10);
+            const totalSeconds = (minutes * 60) + seconds;
+            const event = { type: "restart", seconds: totalSeconds };
+
+            socket.send(JSON.stringify(event));
+        });
+
+        document.getElementById('pauseBtn').addEventListener('click', function () {
+            const event = { type: "pause" };
+            socket.send(JSON.stringify(event));
+        });
+
+        document.getElementById('continueBtn').addEventListener('click', function () {
+            const event = { type: "continue" };
+            socket.send(JSON.stringify(event));
+        });
+
+        document.getElementById('deleteBtn').addEventListener('click', function () {
+            const event = { type: "delete" };
+            socket.send(JSON.stringify(event));
+        });
+
+        // Initialize default value check for minutes and seconds
+        ensureDefaultValues();
+    </script>
+</body>
+
+</html>
