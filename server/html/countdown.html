@@ -77,6 +77,7 @@
 
         #currentTime {
             font-size: 20vh;
+            font-weight: bold;
             /* Same font size as countdown */
             color: rgb(240, 240, 240);
             margin-top: 20px;
@@ -99,10 +100,15 @@
         let socket;
         let started = false;
         let timeRemaining = 0;
-        let blinkCount = 0;
         let isBlinking = false;
         let duration = 0;
         let paused = false;
+        let blinkMap = {
+            "red": false,
+            "orange": false,
+            "blue": false,
+            "yellow": false
+        }
 
         document.addEventListener("DOMContentLoaded", function () {
             displayCurrentTime();
@@ -169,8 +175,6 @@
 
         });
 
-
-
         function startCountdown(new_duration) {
             const progressBar = document.getElementById('progressBar');
             const filler = document.getElementById('filler');
@@ -181,11 +185,36 @@
             timeRemaining = new_duration;
             duration = new_duration;
 
-            blinkCount = 0;
             isBlinking = false;
+            blinkMap = {
+                "red": false,
+                "orange": false,
+                "blue": false,
+                "yellow": false
+            }
 
             progressBar.classList.remove('hidden');
 
+        }
+
+        function blink(colorBlink) {
+            console.log(colorBlink, blinkMap[colorBlink])
+            if (isBlinking || blinkMap[colorBlink]) {
+                return
+            }
+            blinkMap[colorBlink] = true
+            isBlinking = true
+            let blinkCount = 0;
+            const blinkInterval = setInterval(() => {
+                if (blinkCount < 5) {
+                    filler.classList.toggle('blink');
+                    blinkCount++;
+                } else {
+                    clearInterval(blinkInterval);
+                    filler.classList.remove('blink');
+                    isBlinking = false;
+                }
+            }, 200);
         }
 
         function loop() {
@@ -202,20 +231,16 @@
             // Handle color changes and blinking
             if (progress >= 99) {
                 filler.style.backgroundColor = 'red';
+                blink("red")
             } else if (progress >= 90) {
-                filler.style.backgroundColor = 'orange';
-            } else if (progress >= 80 && !isBlinking) {
+                filler.style.backgroundColor = '#fd7c03';
+                blink("orange")
+            } else if (progress >= 80) {
                 filler.style.backgroundColor = 'yellow';
-                isBlinking = true;
-                const blinkInterval = setInterval(() => {
-                    if (blinkCount < 5) {
-                        filler.classList.toggle('blink');
-                        blinkCount++;
-                    } else {
-                        clearInterval(blinkInterval);
-                        filler.classList.remove('blink');
-                    }
-                }, 500);
+                blink("yellow")
+            } else if (progress >= 50) {
+                filler.style.backgroundColor = '#5af4ff';
+                blink("blue")
             }
 
             // Format and update the time remaining inside the bar
